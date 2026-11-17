@@ -104,6 +104,10 @@ def test_to_plan_op_normalizes_flat_rows() -> None:
     floor = nulls | {"op": "set_floor", "room": "Sala", "material": "madera"}
     assert to_plan_op(floor) == {"op": "set_floor", "room": "Sala", "material": "madera"}
     assert to_plan_op(nulls | {"op": "explotar"}) is None
+    # duplicar piso: sin campos = el piso que se ve, una copia; count acotado a 5
+    assert to_plan_op(nulls | {"op": "duplicate_level"}) == {"op": "duplicate_level"}
+    dup = nulls | {"op": "duplicate_level", "level": 2, "count": 9}
+    assert to_plan_op(dup) == {"op": "duplicate_level", "level": 2, "count": 5}
 
 
 def test_to_viewer_action_normalizes_flat_rows() -> None:
@@ -146,9 +150,11 @@ class _FakeMessages:
 
     def create(self, **kwargs: Any) -> Any:
         self.calls += 1
-        assert kwargs["output_config"]["format"]["type"] == "json_schema"
+        assert "output_config" not in kwargs  # el esquema va descrito en el prompt
+        assert "Responde SOLO con un objeto JSON" in kwargs["system"]
+        text = "```json\n" + json.dumps(self.payload) + "\n```"
         return SimpleNamespace(
-            content=[SimpleNamespace(type="text", text=json.dumps(self.payload))],
+            content=[SimpleNamespace(type="text", text=text)],
             stop_reason="end_turn",
             usage=SimpleNamespace(input_tokens=500, output_tokens=100),
         )
