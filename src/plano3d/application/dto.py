@@ -270,6 +270,20 @@ class ProjectDTO(ProjectSummaryDTO):
     revision: int = Field(0, description="versión del modelo; enviarla en If-Match al guardar")
 
 
+class FeaturedDTO(_DTO):
+    """Proyecto destacado: se ve sin cuenta (solo lectura) desde la portada."""
+
+    id: str
+    name: str
+    summary: str
+    levels: int
+    rooms: int
+    total_area: float
+    #: rutas de la web (carpeta public/destacados/…): portada y video del recorrido
+    cover: str | None = None
+    video: str | None = None
+
+
 class RevisionDTO(_DTO):
     number: int
     summary: str
@@ -876,3 +890,30 @@ class AuthConfigDTO(_DTO):
 
 def user_to_dto(u: User) -> UserDTO:
     return UserDTO(id=u.id, email=u.email, name=u.name, is_demo=u.is_demo)
+
+
+# ---- compartir con otra app (ADR-024)
+class ShareDTO(_DTO):
+    code: str = Field(description="8 caracteres en dos grupos, p. ej. K7QM-3XTP")
+    app: Literal["interiores"] = "interiores"
+    created_at: datetime
+    claimed_at: datetime | None = Field(
+        default=None, description="última vez que la otra app lo canjeó"
+    )
+
+
+class ShareCreateDTO(_DTO):
+    app: Literal["interiores"] = "interiores"
+
+
+class ShareClaimDTO(_DTO):
+    code: str = Field(min_length=8, max_length=16)
+
+
+class LinkGrantDTO(_DTO):
+    token: str = Field(description="token de enlace: abre solo este proyecto")
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
+    project_id: str
+    project_name: str
+    role: Literal["interiores"] = "interiores"
